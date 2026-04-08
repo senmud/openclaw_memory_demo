@@ -2,7 +2,7 @@
 
 一个基于 Markdown 文件的 OpenClaw **active memory 插件**，支持：
 
-- 当前版本：`1.0.1`
+- 当前版本：`1.0.2`
 
 - **全局 memory 模式**：所有记忆写入同一个 `memory_global.md`
 - **按 session 隔离的 memory 模式**：按 `userId/channelId/threadId` 三元组隔离
@@ -61,6 +61,8 @@ openclaw plugins install -l /Users/liusen/demo_code/openclaw_memory_demo
   }
 }
 ```
+
+> 注意：插件读取的是 `plugins.entries.markdown-memory.config`（即 pluginConfig），不是全局根配置。
 
 配置完成后重启网关：
 
@@ -180,4 +182,18 @@ echo "[6/6] 验证内容包含测试文本"
 rg "self-check memory entry" "${SESSION_FILE}" >/dev/null
 echo "Self-check passed."
 ```
+
+### 避免与内置 session-memory 冲突
+
+本插件作为 `kind: "memory"` 且被设置到 `plugins.slots.memory` 后，会成为唯一 active memory 实现。建议不要同时启用内置 `memory-core` 的 experimental session-memory。
+
+推荐配置策略（二选一）：
+
+1. 使用本插件作为主 memory（推荐本仓库场景）
+   - `plugins.slots.memory = "markdown-memory"`
+   - 关闭 `agents.defaults.memorySearch.experimental.sessionMemory`
+
+2. 使用内置 `memory-core` 的 session-memory
+   - `plugins.slots.memory = "memory-core"`
+   - 不要把本插件放到 memory slot（仅保留为普通工具插件）
 

@@ -12,6 +12,10 @@ interface MarkdownMemoryConfig {
   maxEntriesPerRead?: number;
 }
 
+function normalizeMemoryMode(value: unknown): MemoryMode {
+  return value === "global" ? "global" : "session";
+}
+
 interface WriteParams {
   userId?: string;
   channelId?: string;
@@ -175,8 +179,8 @@ export default definePluginEntry({
   description: "Use Markdown files as a simple memory store, with optional per-session isolation.",
   kind: "memory",
   register(api) {
-    const cfg = api.config as MarkdownMemoryConfig | undefined;
-    const memoryMode: MemoryMode = cfg?.memoryMode ?? "global";
+    const cfg = (api.pluginConfig ?? {}) as Partial<MarkdownMemoryConfig>;
+    const memoryMode: MemoryMode = normalizeMemoryMode(cfg.memoryMode);
 
     const effectiveConfig: MarkdownMemoryConfig = {
       memoryMode,

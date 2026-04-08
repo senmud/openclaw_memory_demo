@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.2 - 2026-04-08
+
+- Fix plugin config resolution to read `api.pluginConfig` instead of `api.config`.
+- Default memory mode to `session` when no explicit plugin config is provided.
+- Add README guidance for avoiding conflicts with builtin `memory-core` experimental session-memory.
+
 ## 1.0.1 - 2026-04-08
 
 - Upgrade to an active memory plugin shape (`kind: "memory"`).
