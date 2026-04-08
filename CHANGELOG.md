@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.3 - 2026-04-08
+
+- Make `threadId` optional in session mode.
+- Default missing `threadId` to `default`.
+- Keep session file naming as `memory_{userId}:{channelId}:{threadId}.md`.
+- Update README usage and parameter docs to match the new default behavior.
+
 ## 1.0.2 - 2026-04-08
 
 - Fix plugin config resolution to read `api.pluginConfig` instead of `api.config`.
