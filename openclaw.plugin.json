@@ -1,0 +1,28 @@
+{
+  "id": "markdown-memory",
+  "name": "Markdown Memory",
+  "description": "Use Markdown files as a simple memory store, with optional per-session isolation.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "memoryMode": {
+        "type": "string",
+        "description": "Memory scope. Exactly one of 'global' or 'session' is active at a time.",
+        "enum": ["global", "session"],
+        "default": "session"
+      },
+      "storageDir": {
+        "type": "string",
+        "description": "Base directory for Markdown memory files.",
+        "default": "~/.openclaw/markdown-memory"
+      },
+      "maxEntriesPerRead": {
+        "type": "number",
+        "description": "Maximum number of memory entries returned by read tool calls.",
+        "default": 50
+      }
+    },
+    "required": ["memoryMode"]
+  }
+}
