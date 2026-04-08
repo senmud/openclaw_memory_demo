@@ -10,6 +10,9 @@ interface MarkdownMemoryConfig {
   memoryMode: MemoryMode;
   storageDir?: string;
   maxEntriesPerRead?: number;
+  defaultUserId?: string;
+  defaultChannelId?: string;
+  defaultThreadId?: string;
 }
 
 function normalizeMemoryMode(value: unknown): MemoryMode {
@@ -40,6 +43,9 @@ type MemoryEntry = {
 };
 
 const DEFAULT_THREAD_ID = "default";
+const ENV_DEFAULT_USER_ID = "OPENCLAW_MARKDOWN_MEMORY_USER_ID";
+const ENV_DEFAULT_CHANNEL_ID = "OPENCLAW_MARKDOWN_MEMORY_CHANNEL_ID";
+const ENV_DEFAULT_THREAD_ID = "OPENCLAW_MARKDOWN_MEMORY_THREAD_ID";
 
 function resolveStorageDir(rawDir: string | undefined): string {
   const base = rawDir ?? "~/.openclaw/markdown-memory";
@@ -56,13 +62,28 @@ function sanitizeSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 128);
 }
 
-function resolveSessionFileName(params: ReadParams): string {
-  if (!params.userId || !params.channelId) {
+function resolveSessionParams(
+  cfg: MarkdownMemoryConfig,
+  params: ReadParams,
+): { userId: string; channelId: string; threadId: string } {
+  const userId = params.userId ?? cfg.defaultUserId ?? process.env[ENV_DEFAULT_USER_ID] ?? undefined;
+  const channelId =
+    params.channelId ?? cfg.defaultChannelId ?? process.env[ENV_DEFAULT_CHANNEL_ID] ?? undefined;
+  const threadId =
+    params.threadId ?? cfg.defaultThreadId ?? process.env[ENV_DEFAULT_THREAD_ID] ?? DEFAULT_THREAD_ID;
+
+  if (!userId || !channelId) {
     throw new Error("userId and channelId are required when memoryMode is 'session'.");
   }
-  const userId = sanitizeSegment(params.userId);
-  const channelId = sanitizeSegment(params.channelId);
-  const threadId = sanitizeSegment(params.threadId ?? DEFAULT_THREAD_ID);
+
+  return { userId, channelId, threadId };
+}
+
+function resolveSessionFileName(cfg: MarkdownMemoryConfig, params: ReadParams): string {
+  const session = resolveSessionParams(cfg, params);
+  const userId = sanitizeSegment(session.userId);
+  const channelId = sanitizeSegment(session.channelId);
+  const threadId = sanitizeSegment(session.threadId);
   return `memory_${userId}:${channelId}:${threadId}.md`;
 }
 
@@ -73,7 +94,7 @@ function resolveMarkdownPath(cfg: MarkdownMemoryConfig, params: ReadParams): str
     return path.join(storageDir, "memory_global.md");
   }
 
-  return path.join(storageDir, "sessions", resolveSessionFileName(params));
+  return path.join(storageDir, "sessions", resolveSessionFileName(cfg, params));
 }
 
 async function ensureDirForFile(filePath: string): Promise<void> {
@@ -89,11 +110,12 @@ async function appendMarkdownEntry(
   await ensureDirForFile(filePath);
 
   const now = new Date().toISOString();
+  const session = cfg.memoryMode === "session" ? resolveSessionParams(cfg, params) : undefined;
   const entry: MemoryEntry = {
     timestamp: now,
-    userId: cfg.memoryMode === "session" ? params.userId : undefined,
-    channelId: cfg.memoryMode === "session" ? params.channelId : undefined,
-    threadId: cfg.memoryMode === "session" ? params.threadId ?? DEFAULT_THREAD_ID : undefined,
+    userId: session?.userId,
+    channelId: session?.channelId,
+    threadId: session?.threadId,
     text: params.text,
   };
 
@@ -186,6 +208,9 @@ export default definePluginEntry({
       memoryMode,
       storageDir: cfg?.storageDir,
       maxEntriesPerRead: cfg?.maxEntriesPerRead ?? 50,
+      defaultUserId: cfg?.defaultUserId,
+      defaultChannelId: cfg?.defaultChannelId,
+      defaultThreadId: cfg?.defaultThreadId,
     };
 
     // Active memory tool: memory_search
@@ -195,7 +220,7 @@ export default definePluginEntry({
       description:
         "Search markdown-backed memory entries from the active memory plugin. " +
         "In session mode, uses memory_{userId}:{channelId}:{threadId}.md naming; " +
-        "threadId defaults to 'default' when omitted.",
+        "missing session params are resolved from tool params, then plugin defaults, then env defaults.",
       parameters: Type.Object({
         query: Type.String({
           description: "Search keyword text. Matches case-insensitively against stored entries.",
@@ -248,7 +273,7 @@ export default definePluginEntry({
       description:
         "Read recent markdown-backed memory entries from the active memory plugin. " +
         "In session mode, uses memory_{userId}:{channelId}:{threadId}.md naming; " +
-        "threadId defaults to 'default' when omitted.",
+        "missing session params are resolved from tool params, then plugin defaults, then env defaults.",
       parameters: Type.Object({
         userId: Type.Optional(Type.String()),
         channelId: Type.Optional(Type.String()),
@@ -294,7 +319,7 @@ export default definePluginEntry({
       label: "Markdown Memory Add",
       description:
         "Append a memory entry to a Markdown file. " +
-        "When configured for 'session' mode, userId/channelId are required, threadId is optional (default 'default'), and each session gets its own Markdown file. " +
+        "When configured for 'session' mode, session params are resolved in order: tool params, plugin defaults, env defaults (threadId fallback 'default'). " +
         "When configured for 'global' mode, all entries are written to a single global Markdown file.",
       parameters: Type.Object({
         userId: Type.Optional(Type.String()),
@@ -334,7 +359,7 @@ export default definePluginEntry({
       label: "Markdown Memory Read",
       description:
         "Read recent memory entries from the Markdown store. " +
-        "Respects the plugin's memoryMode: either global or per-session (threadId defaults to 'default').",
+        "Respects the plugin's memoryMode: either global or per-session with automatic session param fallback.",
       parameters: Type.Object({
         userId: Type.Optional(Type.String()),
         channelId: Type.Optional(Type.String()),

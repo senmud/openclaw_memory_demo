@@ -21,6 +21,18 @@
         "type": "number",
         "description": "Maximum number of memory entries returned by read tool calls.",
         "default": 50
+      },
+      "defaultUserId": {
+        "type": "string",
+        "description": "Optional default userId for session mode when tool params omit it."
+      },
+      "defaultChannelId": {
+        "type": "string",
+        "description": "Optional default channelId for session mode when tool params omit it."
+      },
+      "defaultThreadId": {
+        "type": "string",
+        "description": "Optional default threadId for session mode when tool params omit it (falls back to 'default')."
       }
     },
     "required": ["memoryMode"]

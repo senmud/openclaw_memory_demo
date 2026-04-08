@@ -1,6 +1,6 @@
 {
   "name": "@example/openclaw-markdown-memory",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "description": "OpenClaw plugin that stores agent memory in Markdown files with optional per-session isolation.",
   "license": "MIT",

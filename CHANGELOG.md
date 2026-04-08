@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.4 - 2026-04-08
+
+- Add automatic session parameter fallback in session mode:
+  `tool params -> plugin defaults -> environment defaults`.
+- Add new plugin config fields:
+  `defaultUserId`, `defaultChannelId`, `defaultThreadId`.
+- Add optional environment defaults:
+  `OPENCLAW_MARKDOWN_MEMORY_USER_ID`,
+  `OPENCLAW_MARKDOWN_MEMORY_CHANNEL_ID`,
+  `OPENCLAW_MARKDOWN_MEMORY_THREAD_ID`.
+- Keep `threadId` final fallback as `default`.
+
 ## 1.0.3 - 2026-04-08
 
 - Make `threadId` optional in session mode.

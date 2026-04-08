@@ -2,7 +2,7 @@
 
 一个基于 Markdown 文件的 OpenClaw **active memory 插件**，支持：
 
-- 当前版本：`1.0.3`
+- 当前版本：`1.0.4`
 
 - **全局 memory 模式**：所有记忆写入同一个 `memory_global.md`
 - **按 session 隔离的 memory 模式**：按 `userId/channelId/threadId` 三元组隔离（`threadId` 可选）
@@ -48,7 +48,10 @@ openclaw plugins install -l /Users/liusen/demo_code/openclaw_memory_demo
         "config": {
           "memoryMode": "session",
           "storageDir": "~/.openclaw/markdown-memory",
-          "maxEntriesPerRead": 50
+          "maxEntriesPerRead": 50,
+          "defaultUserId": "ou_default_user",
+          "defaultChannelId": "feishu",
+          "defaultThreadId": "default"
         }
       }
     },
@@ -71,7 +74,14 @@ openclaw gateway restart
   - 所有写入进入：`<storageDir>/memory_global.md`
 - **session 模式**：`memoryMode: "session"`  
   - 每个 session 写入：`<storageDir>/sessions/memory_{userId}:{channelId}:{threadId}.md`
-  - `userId/channelId` 必填，`threadId` 可选（默认 `default`）
+  - 会话参数自动回退顺序：工具参数 > 插件默认配置 > 环境变量默认值
+  - `threadId` 最终兜底为 `default`
+
+可选环境变量默认值：
+
+- `OPENCLAW_MARKDOWN_MEMORY_USER_ID`
+- `OPENCLAW_MARKDOWN_MEMORY_CHANNEL_ID`
+- `OPENCLAW_MARKDOWN_MEMORY_THREAD_ID`
 
 ### Active memory 能力
 
@@ -89,39 +99,39 @@ openclaw gateway restart
   - **参数**：
     - `text: string`（必填）：要存储的记忆文本
     - `userId?: string` / `channelId?: string` / `threadId?: string`：
-      - 当 `memoryMode === "session"` 时 `userId/channelId` 必填
-      - `threadId` 可选，未传时自动使用 `default`
+      - 当 `memoryMode === "session"` 时，会按“参数 > 配置 > 环境变量”自动补齐
+      - `threadId` 未提供时最终默认 `default`
       - 当 `memoryMode === "global"` 时会被忽略
 
 - **`markdown_memory_read`**
   - **作用**：读取最近的若干条 memory
   - **参数**：
     - `userId?: string` / `channelId?: string` / `threadId?: string`：
-      - 当 `memoryMode === "session"` 时 `userId/channelId` 必填
-      - `threadId` 可选，未传时自动使用 `default`
+      - 当 `memoryMode === "session"` 时，会按“参数 > 配置 > 环境变量”自动补齐
+      - `threadId` 未提供时最终默认 `default`
       - 当 `memoryMode === "global"` 时会被忽略
   - 返回内容中包含当前模式和每条记忆的时间戳 / session / 文本。
 
 - **`memory_search`（active memory）**
   - 作用：在当前 memory 文件中按关键字检索。
-  - 参数：`query` +（session 模式下）`userId/channelId`；`threadId` 可选。
+  - 参数：`query` + 可选会话参数（若省略则自动回退）。
 
 - **`memory_get`（active memory）**
   - 作用：读取当前作用域（global 或 session）的最近 memory 记录。
-  - 参数：（session 模式下）`userId/channelId`；`threadId` 可选。
+  - 参数：可选会话参数（若省略则自动回退）。
 
 ### 设计要点对应你的需求
 
 - **严格遵循最新 SDK 导入规范**  
   - 使用 `definePluginEntry` 且只从精确子路径 `openclaw/plugin-sdk/plugin-entry` 导入。
 - **Markdown 文件实现 session 级别存储**  
-  - 使用 `~/.openclaw/markdown-memory/sessions/memory_{userId}:{channelId}:{threadId}.md` 作为 session 级文件（`threadId` 默认 `default`）。
+  - 使用 `~/.openclaw/markdown-memory/sessions/memory_{userId}:{channelId}:{threadId}.md` 作为 session 级文件（支持默认值自动补齐）。
 - **通过选项切换全局 / session memory**  
   - `openclaw.plugin.json` 的 `configSchema.memoryMode` 限定为 `"global"` 或 `"session"`。
 - **二者互斥**  
   - 插件内部根据 `memoryMode` 决定路径逻辑：
     - `global` 模式下所有写入固定到 `memory_global.md`
-    - `session` 模式下要求 `userId/channelId`，`threadId` 缺省为 `default`，并写入对应文件  
+    - `session` 模式下会自动补齐会话参数后写入对应文件  
   - 不存在同时激活两种模式的代码路径。
 
 ### 安装后自检脚本
